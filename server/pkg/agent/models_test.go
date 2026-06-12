@@ -337,6 +337,26 @@ openai/gpt-4o                      128000   16384
 	}
 }
 
+func TestParseOpenCodeModelsColonNoiseAndBare(t *testing.T) {
+	// Structural backstop: single-token colon lines must not produce phantom
+	// models, whether they are noise (table format, no numeric columns) or
+	// bare colon IDs emitted by opencode's verbose format.
+	input := `PROVIDER/MODEL                     CONTEXT  MAX_OUT
+Error:                              200000   8192
+warning:                            128000   16384
+Models:                             32768    4096
+custom:                             131072   8192
+openai/gpt-4o                      128000   16384
+`
+	models := parseOpenCodeModels(input)
+	if len(models) != 1 {
+		t.Fatalf("expected 1 model (all noise lines dropped by backstop), got %d: %+v", len(models), models)
+	}
+	if models[0].ID != "openai/gpt-4o" {
+		t.Errorf("unexpected model: %+v", models[0])
+	}
+}
+
 func TestParseOpenCodeModelsVerboseVariants(t *testing.T) {
 	input := `openai/gpt-5
 {

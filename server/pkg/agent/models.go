@@ -456,7 +456,7 @@ func parseOpenCodeModelIDLine(line string) string {
 	if strings.Contains(id, ":") && !strings.Contains(id, "/") {
 		isTableRow := true
 		for _, f := range fields[1:] {
-			if _, err := strconv.Atoi(strings.TrimSpace(f)); err != nil {
+			if _, err := strconv.Atoi(f); err != nil {
 				isTableRow = false
 				break
 			}
@@ -465,7 +465,12 @@ func parseOpenCodeModelIDLine(line string) string {
 			id = strings.Replace(id, ":", "/", 1)
 		}
 	}
-	if !strings.Contains(id, "/") {
+	// Structural backstop: a real model ID has a non-empty provider and
+	// model on both sides of the slash. Without this, single-token colon
+	// noise (e.g. "Error:" or "custom:") that slips past the numeric-columns
+	// guard above becomes a phantom model and breaks the verbose→plain
+	// fallback in discoverOpenCodeModels. Mirrors the guard in parsePiModels.
+	if slash := strings.Index(id, "/"); slash <= 0 || slash == len(id)-1 {
 		return ""
 	}
 	// Skip header rows such as PROVIDER/MODEL.
